@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-behafucha" path="/org/gnome/shell/extensions/gnome-behafucha/">
+    <key name="convert-text-shortcut" type="as">
+      <default>["&lt;Control&gt;&lt;Shift&gt;z"]</default>
+      <summary>Shortcut to convert text layout</summary>
+    </key>
+  </schema>
+</schemalist>
