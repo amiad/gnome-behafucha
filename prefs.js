@@ -1,4 +1,4 @@
-import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
@@ -9,15 +9,15 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
         const settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
         
         const page = new Adw.PreferencesPage();
-        const group = new Adw.PreferencesGroup({ title: 'Settings' });
+        const group = new Adw.PreferencesGroup({ title: _('Settings') });
         const row = new Adw.ActionRow({
-            title: 'Keyboard Shortcut',
-            subtitle: 'Shortcut to convert and paste text',
+            title: _('Keyboard Shortcut'),
+            subtitle: _('Shortcut to convert and paste text'),
             activatable: true
         });
 
         const shortcutLabel = new Gtk.ShortcutLabel({
-            disabled_text: 'Not Set',
+            disabled_text: _('Not Set'),
             valign: Gtk.Align.CENTER
         });
 
@@ -35,12 +35,12 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
                 transient_for: window,
                 width_request: 450,
                 height_request: 250,
-                title: 'Set Shortcut'
+                title: _('Set Shortcut')
             });
 
             const view = new Adw.StatusPage({
-                title: 'Recording...',
-                description: 'Press your combination (e.g., Ctrl+Shift+Z)\nEsc to cancel',
+                title: _('Recording...'),
+                description: _('Press full combination (e.g., Alt+Shift+Z)\nEsc to cancel'),
                 icon_name: 'preferences-desktop-keyboard-shortcuts-symbolic'
             });
 
@@ -53,10 +53,15 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
                     return true;
                 }
 
-                // Masking out non-modifier bits
+                // Get modifiers from the state
                 let mask = state & Gtk.accelerator_get_default_mod_mask();
                 
-                // Identify modifier keys
+                // Manual check for common modifiers to ensure they aren't skipped
+                const isAlt = (state & Gdk.ModifierType.ALT_MASK) || (state & Gdk.ModifierType.MOD1_MASK);
+                const isCtrl = (state & Gdk.ModifierType.CONTROL_MASK);
+                const isShift = (state & Gdk.ModifierType.SHIFT_MASK);
+                const isSuper = (state & Gdk.ModifierType.SUPER_MASK) || (state & Gdk.ModifierType.META_MASK);
+
                 let isModifierKey = (
                     keyval === Gdk.KEY_Control_L || keyval === Gdk.KEY_Control_R ||
                     keyval === Gdk.KEY_Shift_L || keyval === Gdk.KEY_Shift_R ||
@@ -64,14 +69,20 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
                     keyval === Gdk.KEY_Super_L || keyval === Gdk.KEY_Super_R
                 );
 
-                // If a non-modifier key is pressed with at least one modifier
                 if (!isModifierKey && mask !== 0) {
-                    // Use the lowercase version of the key to ensure Alt+Shift+Z works correctly
-                    let cleanKeyval = Gdk.keyval_to_lower(keyval);
-                    const accelerator = Gtk.accelerator_name(cleanKeyval, mask);
+                    // Build the accelerator string manually to be safe
+                    let res = '';
+                    if (isCtrl) res += '<Control>';
+                    if (isAlt) res += '<Alt>';
+                    if (isShift) res += '<Shift>';
+                    if (isSuper) res += '<Super>';
                     
-                    if (accelerator) {
-                        settings.set_strv('convert-text-shortcut', [accelerator]);
+                    // Add the actual key name
+                    let keyName = Gtk.accelerator_name(keyval, 0);
+                    res += keyName;
+
+                    if (res) {
+                        settings.set_strv('convert-text-shortcut', [res]);
                         editor.close();
                     }
                 }

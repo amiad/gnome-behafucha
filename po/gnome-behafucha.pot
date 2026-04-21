@@ -1,0 +1,39 @@
+# GNOME Behafucha Translation Template.
+# Copyright (C) 2026
+# This file is distributed under the same license as the GNOME Behafucha package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: GNOME Behafucha\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-21 13:20+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Settings"
+msgstr ""
+
+msgid "Keyboard Shortcut"
+msgstr ""
+
+msgid "Shortcut to convert and paste text"
+msgstr ""
+
+msgid "Not Set"
+msgstr ""
+
+msgid "Set Shortcut"
+msgstr ""
+
+msgid "Recording..."
+msgstr ""
+
+msgid "Press full combination (e.g., Alt+Shift+Z)\nEsc to cancel"
+msgstr ""

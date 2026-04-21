@@ -1,15 +1,16 @@
 {
-  "name": "Gnome Behafucha",
-  "description": "Fixes text typed in the wrong keyboard layout using Ctrl+Shift+Z",
-  "uuid": "gnome-behafucha@hatul.info",
-  "shell-version": [
-    "45",
-    "46",
-    "47",
-    "48",
-    "49",
-    "50"
-  ],
-  "url": "",
-  "version": 1
+    "name": "Gnome Behafucha",
+    "description": "Fixes text typed in the wrong keyboard layout using Ctrl+Shift+Z",
+    "gettext-domain": "gnome-behafucha",
+    "uuid": "gnome-behafucha@hatul.info",
+    "shell-version": [
+        "45",
+        "46",
+        "47",
+        "48",
+        "49",
+        "50"
+    ],
+    "url": "",
+    "version": 1
 }
