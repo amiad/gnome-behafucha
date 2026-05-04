@@ -1,14 +1,12 @@
-# GNOME Behafucha Translation Template.
+# GNOME Behafucha translation template.
 # Copyright (C) 2026
 # This file is distributed under the same license as the GNOME Behafucha package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: GNOME Behafucha\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-21 13:20+0000\n"
+"POT-Creation-Date: 2026-05-04 16:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,7 +21,10 @@ msgstr ""
 msgid "Keyboard Shortcut"
 msgstr ""
 
-msgid "Shortcut to convert and paste text"
+msgid "Shortcut to convert text."
+msgstr ""
+
+msgid "Note: Shortcuts without \"Shift\" are more stable."
 msgstr ""
 
 msgid "Not Set"
@@ -35,5 +36,8 @@ msgstr ""
 msgid "Recording..."
 msgstr ""
 
-msgid "Press full combination (e.g., Alt+Shift+Z)\nEsc to cancel"
+msgid "Press full combination (e.g., Super+Z)."
+msgstr ""
+
+msgid "Esc to cancel"
 msgstr ""

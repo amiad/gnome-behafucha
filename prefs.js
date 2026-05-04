@@ -8,11 +8,15 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
         
+        // Define the stability note once to avoid duplicate translations
+        const stabilityNote = _('Note: Shortcuts without "Shift" are more stable.');
+
         const page = new Adw.PreferencesPage();
         const group = new Adw.PreferencesGroup({ title: _('Settings') });
+        
         const row = new Adw.ActionRow({
             title: _('Keyboard Shortcut'),
-            subtitle: _('Shortcut to convert and paste text'),
+            subtitle: `${_('Shortcut to convert text.')} ${stabilityNote}`,
             activatable: true
         });
 
@@ -40,7 +44,7 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
 
             const view = new Adw.StatusPage({
                 title: _('Recording...'),
-                description: _('Press full combination (e.g., Alt+Shift+Z)\nEsc to cancel'),
+                description: `${_('Press full combination (e.g., Super+Z).')}\n${stabilityNote}\n${_('Esc to cancel')}`,
                 icon_name: 'preferences-desktop-keyboard-shortcuts-symbolic'
             });
 
@@ -53,10 +57,8 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
                     return true;
                 }
 
-                // Get modifiers from the state
                 let mask = state & Gtk.accelerator_get_default_mod_mask();
                 
-                // Manual check for common modifiers to ensure they aren't skipped
                 const isAlt = (state & Gdk.ModifierType.ALT_MASK) || (state & Gdk.ModifierType.MOD1_MASK);
                 const isCtrl = (state & Gdk.ModifierType.CONTROL_MASK);
                 const isShift = (state & Gdk.ModifierType.SHIFT_MASK);
@@ -70,14 +72,12 @@ export default class GnomeBehafuchaPreferences extends ExtensionPreferences {
                 );
 
                 if (!isModifierKey && mask !== 0) {
-                    // Build the accelerator string manually to be safe
                     let res = '';
                     if (isCtrl) res += '<Control>';
                     if (isAlt) res += '<Alt>';
                     if (isShift) res += '<Shift>';
                     if (isSuper) res += '<Super>';
                     
-                    // Add the actual key name
                     let keyName = Gtk.accelerator_name(keyval, 0);
                     res += keyName;
 

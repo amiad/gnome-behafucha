@@ -22,8 +22,11 @@ msgstr "הגדרות"
 msgid "Keyboard Shortcut"
 msgstr "קיצור מקלדת"
 
-msgid "Shortcut to convert and paste text"
-msgstr "קיצור להפיכת טקסט והדבקה"
+msgid "Shortcut to convert text."
+msgstr "קיצור להפיכת טקסט."
+
+msgid "Note: Shortcuts without \"Shift\" are more stable."
+msgstr "הערה: קיצורים ללא Shift יציבים יותר."
 
 msgid "Not Set"
 msgstr "לא הוגדר"
@@ -34,5 +37,8 @@ msgstr "הגדרת קיצור"
 msgid "Recording..."
 msgstr "מקליט..."
 
-msgid "Press full combination (e.g., Alt+Shift+Z)\nEsc to cancel"
-msgstr "לחץ על הצירוף המלא (למשל Alt+Shift+Z)\nEsc לביטול"
+msgid "Press full combination (e.g., Super+Z)."
+msgstr "לחץ על הצירוף המלא (למשל Super+Z)."
+
+msgid "Esc to cancel"
+msgstr "Esc לביטול"

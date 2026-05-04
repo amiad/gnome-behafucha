@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
   <schema id="org.gnome.shell.extensions.gnome-behafucha" path="/org/gnome/shell/extensions/gnome-behafucha/">
+    
     <key name="convert-text-shortcut" type="as">
-      <default>["&lt;Control&gt;&lt;Shift&gt;z"]</default>
-      <summary>Shortcut to convert text layout</summary>
+      <default>['&lt;Super&gt;z']</default>
+      <summary>Shortcut to convert text</summary>
+      <description>
+        The key combination to trigger text conversion. 
+        Note: For better stability, it is recommended to avoid using "Shift" in the shortcut (e.g., use Super+Z instead).
+      </description>
     </key>
+
   </schema>
 </schemalist>
