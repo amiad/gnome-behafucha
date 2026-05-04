@@ -22,7 +22,6 @@ export default class GnomeBehafucha extends Extension {
                 Meta.KeyBindingFlags.NONE,
                 Shell.ActionMode.ALL,
                 () => {
-                    // Initial delay to allow the physical key press event to stabilize
                     GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
                         this._handleShortcut();
                         return GLib.SOURCE_REMOVE;
@@ -44,7 +43,6 @@ export default class GnomeBehafucha extends Extension {
     _handleShortcut() {
         if (!this._virtualDevice) return;
 
-        // Force release of modifiers to avoid collisions with the virtual Ctrl+C/V
         const MODIFIERS = [29, 42, 56, 125, 126, 97, 100];
         let time = GLib.get_monotonic_time() / 1000;
 
@@ -52,7 +50,6 @@ export default class GnomeBehafucha extends Extension {
             this._virtualDevice.notify_key(time + (index * 2), keycode, Clutter.KeyState.RELEASED);
         });
 
-        // Clear clipboard to ensure we don't paste stale data if copy fails
         this._clipboard.set_text(St.ClipboardType.CLIPBOARD, "");
 
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
@@ -67,13 +64,11 @@ export default class GnomeBehafucha extends Extension {
         const V_KEY = 47;
         let time = GLib.get_monotonic_time() / 1000;
 
-        // Step 1: Execute Copy (Ctrl+C)
         this._virtualDevice.notify_key(time, CTRL, Clutter.KeyState.PRESSED);
         this._virtualDevice.notify_key(time + 50, C_KEY, Clutter.KeyState.PRESSED);
         this._virtualDevice.notify_key(time + 100, C_KEY, Clutter.KeyState.RELEASED);
         this._virtualDevice.notify_key(time + 150, CTRL, Clutter.KeyState.RELEASED);
 
-        // Step 2: Process and Paste
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
             this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
                 if (!text || text.trim() === "") return;
@@ -95,7 +90,7 @@ export default class GnomeBehafucha extends Extension {
     }
 
     _convertText(text) {
-        const ENGLISH_TO_HEBREW = {
+        const EN_TO_HE = {
             'q': '/', 'w': "'", 'e': 'ק', 'r': 'ר', 't': 'א', 'y': 'ט', 'u': 'ו',
             'i': 'ן', 'o': 'ם', 'p': 'פ', '[': ']', ']': '[', 'a': 'ש', 's': 'ד',
             'd': 'ג', 'f': 'כ', 'g': 'ע', 'h': 'י', 'j': 'ח', 'k': 'ל', 'l': 'ך',
@@ -103,18 +98,25 @@ export default class GnomeBehafucha extends Extension {
             'n': 'מ', 'm': 'צ', ',': 'ת', '.': 'ץ', '/': '.'
         };
 
-        const HEBREW_TO_ENGLISH = Object.fromEntries(
-            Object.entries(ENGLISH_TO_HEBREW).map(([k, v]) => [v, k])
+        const HE_TO_EN = Object.fromEntries(
+            Object.entries(EN_TO_HE).map(([k, v]) => [v, k])
         );
-
-        const hebrewChars = (text.match(/[\u0590-\u05FF]/g) || []).length;
-        const englishChars = (text.match(/[a-zA-Z]/g) || []).length;
-        const toHebrew = englishChars >= hebrewChars;
 
         return text.split('').map(char => {
             const lowerChar = char.toLowerCase();
-            const converted = toHebrew ? ENGLISH_TO_HEBREW[lowerChar] : HEBREW_TO_ENGLISH[char];
-            return converted || char;
+            
+            // If it's Hebrew, convert to English
+            if (HE_TO_EN[char]) {
+                return HE_TO_EN[char];
+            }
+            
+            // If it's English, convert to Hebrew
+            if (EN_TO_HE[lowerChar]) {
+                return EN_TO_HE[lowerChar];
+            }
+            
+            // Return as is if no mapping exists
+            return char;
         }).join('');
     }
 }
