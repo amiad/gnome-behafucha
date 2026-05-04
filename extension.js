@@ -8,21 +8,30 @@ import Clutter from 'gi://Clutter';
 
 export default class GnomeBehafucha extends Extension {
     enable() {
-        this._settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
-        this._clipboard = St.Clipboard.get_default();
+        try {
+            this._settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
+            this._clipboard = St.Clipboard.get_default();
 
-        // Create virtual keyboard device via default seat
-        this._virtualDevice = Clutter.get_default_backend()
-            .get_default_seat()
-            .create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+            this._virtualDevice = Clutter.get_default_backend()
+                .get_default_seat()
+                .create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
 
-        Main.wm.addKeybinding(
-            'convert-text-shortcut',
-            this._settings,
-            Meta.KeyBindingFlags.NONE,
-            Shell.ActionMode.ALL,
-            () => this._convertAndPaste()
-        );
+            Main.wm.addKeybinding(
+                'convert-text-shortcut',
+                this._settings,
+                Meta.KeyBindingFlags.NONE,
+                Shell.ActionMode.ALL,
+                () => {
+                    // Initial delay to allow the physical key press event to stabilize
+                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                        this._handleShortcut();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
+            );
+        } catch (e) {
+            console.error(`GnomeBehafucha Error: ${e.message}`);
+        }
     }
 
     disable() {
@@ -32,53 +41,55 @@ export default class GnomeBehafucha extends Extension {
         this._virtualDevice = null;
     }
 
-    _convertAndPaste() {
-        this._clipboard.get_text(St.ClipboardType.PRIMARY, (clipboard, text) => {
-            if (!text) return;
+    _handleShortcut() {
+        if (!this._virtualDevice) return;
 
-            const converted = this._convertText(text);
-            const textLength = text.length;
+        // Force release of modifiers to avoid collisions with the virtual Ctrl+C/V
+        const MODIFIERS = [29, 42, 56, 125, 126, 97, 100];
+        let time = GLib.get_monotonic_time() / 1000;
 
-            this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
-            this._clipboard.set_text(St.ClipboardType.PRIMARY, converted);
+        MODIFIERS.forEach((keycode, index) => {
+            this._virtualDevice.notify_key(time + (index * 2), keycode, Clutter.KeyState.RELEASED);
+        });
 
-            // Small delay to ensure clipboard synchronization before starting simulation
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
-                this._triggerPaste(textLength);
-                return GLib.SOURCE_REMOVE;
-            });
+        // Clear clipboard to ensure we don't paste stale data if copy fails
+        this._clipboard.set_text(St.ClipboardType.CLIPBOARD, "");
+
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            this._executeCopyPaste();
+            return GLib.SOURCE_REMOVE;
         });
     }
 
-    _triggerPaste(length) {
-        if (!this._virtualDevice) return;
+    _executeCopyPaste() {
+        const CTRL = 29;
+        const C_KEY = 46;
+        const V_KEY = 47;
+        let time = GLib.get_monotonic_time() / 1000;
 
-        const SHIFT_L = 42;
-        const INSERT = 110;
-        const BACKSPACE = 14; 
-        
-        let count = 0;
+        // Step 1: Execute Copy (Ctrl+C)
+        this._virtualDevice.notify_key(time, CTRL, Clutter.KeyState.PRESSED);
+        this._virtualDevice.notify_key(time + 50, C_KEY, Clutter.KeyState.PRESSED);
+        this._virtualDevice.notify_key(time + 100, C_KEY, Clutter.KeyState.RELEASED);
+        this._virtualDevice.notify_key(time + 150, CTRL, Clutter.KeyState.RELEASED);
 
-        // Use a short interval for deletion to remain stable within the Main Loop
-        let intervalId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 5, () => {
-            if (count < length) {
-                let time = Clutter.get_current_event_time() * 1000;
-                this._virtualDevice.notify_key(time, BACKSPACE, Clutter.KeyState.PRESSED);
-                this._virtualDevice.notify_key(time + 100, BACKSPACE, Clutter.KeyState.RELEASED);
-                count++;
-                return GLib.SOURCE_CONTINUE;
-            }
+        // Step 2: Process and Paste
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+            this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
+                if (!text || text.trim() === "") return;
 
-            // Once deletion is complete, proceed to paste
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 10, () => {
-                let time = Clutter.get_current_event_time() * 1000;
-                this._virtualDevice.notify_key(time, SHIFT_L, Clutter.KeyState.PRESSED);
-                this._virtualDevice.notify_key(time + 100, INSERT, Clutter.KeyState.PRESSED);
-                this._virtualDevice.notify_key(time + 200, INSERT, Clutter.KeyState.RELEASED);
-                this._virtualDevice.notify_key(time + 300, SHIFT_L, Clutter.KeyState.RELEASED);
-                return GLib.SOURCE_REMOVE;
+                const converted = this._convertText(text);
+                this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
+
+                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                    let pt = GLib.get_monotonic_time() / 1000;
+                    this._virtualDevice.notify_key(pt, CTRL, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(pt + 50, V_KEY, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(pt + 100, V_KEY, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(pt + 150, CTRL, Clutter.KeyState.RELEASED);
+                    return GLib.SOURCE_REMOVE;
+                });
             });
-
             return GLib.SOURCE_REMOVE;
         });
     }
@@ -96,16 +107,14 @@ export default class GnomeBehafucha extends Extension {
             Object.entries(ENGLISH_TO_HEBREW).map(([k, v]) => [v, k])
         );
 
-        const hebrewCount = (text.match(/[\u0590-\u05FF]/g) || []).length;
-        const englishCount = (text.match(/[a-zA-Z]/g) || []).length;
-        const toHebrew = englishCount >= hebrewCount;
+        const hebrewChars = (text.match(/[\u0590-\u05FF]/g) || []).length;
+        const englishChars = (text.match(/[a-zA-Z]/g) || []).length;
+        const toHebrew = englishChars >= hebrewChars;
 
         return text.split('').map(char => {
-            if (toHebrew) {
-                return ENGLISH_TO_HEBREW[char.toLowerCase()] || char;
-            } else {
-                return HEBREW_TO_ENGLISH[char] || char;
-            }
+            const lowerChar = char.toLowerCase();
+            const converted = toHebrew ? ENGLISH_TO_HEBREW[lowerChar] : HEBREW_TO_ENGLISH[char];
+            return converted || char;
         }).join('');
     }
 }
