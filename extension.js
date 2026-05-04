@@ -11,7 +11,6 @@ export default class GnomeBehafucha extends Extension {
         try {
             this._settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
             this._clipboard = St.Clipboard.get_default();
-
             this._virtualDevice = Clutter.get_default_backend()
                 .get_default_seat()
                 .create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
@@ -43,18 +42,24 @@ export default class GnomeBehafucha extends Extension {
     _handleShortcut() {
         if (!this._virtualDevice) return;
 
-        const MODIFIERS = [29, 42, 56, 125, 126, 97, 100];
-        let time = GLib.get_monotonic_time() / 1000;
+        // Step 1: Save current clipboard content before we start
+        this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, originalText) => {
+            this._backupText = originalText;
+            
+            // Release modifiers
+            const MODIFIERS = [29, 42, 56, 125, 126, 97, 100];
+            let time = GLib.get_monotonic_time() / 1000;
+            MODIFIERS.forEach((keycode, index) => {
+                this._virtualDevice.notify_key(time + (index * 2), keycode, Clutter.KeyState.RELEASED);
+            });
 
-        MODIFIERS.forEach((keycode, index) => {
-            this._virtualDevice.notify_key(time + (index * 2), keycode, Clutter.KeyState.RELEASED);
-        });
+            // Clear clipboard to prepare for the new copy
+            this._clipboard.set_text(St.ClipboardType.CLIPBOARD, "");
 
-        this._clipboard.set_text(St.ClipboardType.CLIPBOARD, "");
-
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-            this._executeCopyPaste();
-            return GLib.SOURCE_REMOVE;
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                this._executeCopyPaste();
+                return GLib.SOURCE_REMOVE;
+            });
         });
     }
 
@@ -64,6 +69,7 @@ export default class GnomeBehafucha extends Extension {
         const V_KEY = 47;
         let time = GLib.get_monotonic_time() / 1000;
 
+        // Copy (Ctrl+C)
         this._virtualDevice.notify_key(time, CTRL, Clutter.KeyState.PRESSED);
         this._virtualDevice.notify_key(time + 50, C_KEY, Clutter.KeyState.PRESSED);
         this._virtualDevice.notify_key(time + 100, C_KEY, Clutter.KeyState.RELEASED);
@@ -71,7 +77,11 @@ export default class GnomeBehafucha extends Extension {
 
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
             this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
-                if (!text || text.trim() === "") return;
+                if (!text || text.trim() === "") {
+                    // If copy failed, restore backup immediately
+                    if (this._backupText) this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
+                    return;
+                }
 
                 const converted = this._convertText(text);
                 this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
@@ -82,6 +92,15 @@ export default class GnomeBehafucha extends Extension {
                     this._virtualDevice.notify_key(pt + 50, V_KEY, Clutter.KeyState.PRESSED);
                     this._virtualDevice.notify_key(pt + 100, V_KEY, Clutter.KeyState.RELEASED);
                     this._virtualDevice.notify_key(pt + 150, CTRL, Clutter.KeyState.RELEASED);
+
+                    // Step 3: Restore original clipboard after the paste is likely finished
+                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                        if (this._backupText !== null) {
+                            this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
+                        }
+                        return GLib.SOURCE_REMOVE;
+                    });
+                    
                     return GLib.SOURCE_REMOVE;
                 });
             });
@@ -104,18 +123,8 @@ export default class GnomeBehafucha extends Extension {
 
         return text.split('').map(char => {
             const lowerChar = char.toLowerCase();
-            
-            // If it's Hebrew, convert to English
-            if (HE_TO_EN[char]) {
-                return HE_TO_EN[char];
-            }
-            
-            // If it's English, convert to Hebrew
-            if (EN_TO_HE[lowerChar]) {
-                return EN_TO_HE[lowerChar];
-            }
-            
-            // Return as is if no mapping exists
+            if (HE_TO_EN[char]) return HE_TO_EN[char];
+            if (EN_TO_HE[lowerChar]) return EN_TO_HE[lowerChar];
             return char;
         }).join('');
     }
