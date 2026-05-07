@@ -44,5 +44,11 @@ gsettings set org.gnome.shell.extensions.gnome-behafucha convert-text-shortcut "
 * **Shift Key Issues:** Avoid using the `Shift` key as a modifier for your shortcut (e.g., `<Super><Shift>z`). Using `Shift` can interfere with the automated selection and copy-paste simulation, causing the conversion to fail.
 * **Clipboard Content:** This extension is optimized for text. To ensure system stability, non-text data (such as images) currently in the clipboard may be lost during the conversion process.
 
+## Privacy
+This extension is designed with privacy in mind:
+* **Local Processing:** All text conversion is performed locally on your machine.
+* **Clipboard Access:** The extension only accesses the clipboard when the conversion shortcut is explicitly triggered by the user.
+* **No Data Collection:** No text, metadata, or usage statistics are stored, logged, or transmitted to any external servers or third parties.
+
 ## License
 GPLv3
