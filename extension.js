@@ -8,9 +8,11 @@ import Clutter from 'gi://Clutter';
 
 export default class GnomeBehafucha extends Extension {
     enable() {
+        this._timeoutIds = [];
         try {
             this._settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
             this._clipboard = St.Clipboard.get_default();
+            
             this._virtualDevice = Clutter.get_default_backend()
                 .get_default_seat()
                 .create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
@@ -21,10 +23,12 @@ export default class GnomeBehafucha extends Extension {
                 Meta.KeyBindingFlags.NONE,
                 Shell.ActionMode.ALL,
                 () => {
-                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                    let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
                         this._handleShortcut();
+                        this._removeTimeout(id);
                         return GLib.SOURCE_REMOVE;
                     });
+                    this._timeoutIds.push(id);
                 }
             );
         } catch (e) {
@@ -32,34 +36,43 @@ export default class GnomeBehafucha extends Extension {
         }
     }
 
+    _removeTimeout(id) {
+        this._timeoutIds = this._timeoutIds.filter(tId => tId !== id);
+    }
+
     disable() {
+        if (this._timeoutIds) {
+            this._timeoutIds.forEach(id => GLib.source_remove(id));
+            this._timeoutIds = [];
+        }
+
         Main.wm.removeKeybinding('convert-text-shortcut');
         this._settings = null;
         this._clipboard = null;
         this._virtualDevice = null;
+        this._backupText = null;
     }
 
     _handleShortcut() {
         if (!this._virtualDevice) return;
 
-        // Step 1: Save current clipboard content before we start
-        this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, originalText) => {
-            this._backupText = originalText;
-            
-            // Release modifiers
+        this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
+            this._backupText = text;
+
             const MODIFIERS = [29, 42, 56, 125, 126, 97, 100];
             let time = GLib.get_monotonic_time() / 1000;
             MODIFIERS.forEach((keycode, index) => {
                 this._virtualDevice.notify_key(time + (index * 2), keycode, Clutter.KeyState.RELEASED);
             });
 
-            // Clear clipboard to prepare for the new copy
             this._clipboard.set_text(St.ClipboardType.CLIPBOARD, "");
 
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
                 this._executeCopyPaste();
+                this._removeTimeout(id);
                 return GLib.SOURCE_REMOVE;
             });
+            this._timeoutIds.push(id);
         });
     }
 
@@ -69,16 +82,14 @@ export default class GnomeBehafucha extends Extension {
         const V_KEY = 47;
         let time = GLib.get_monotonic_time() / 1000;
 
-        // Copy (Ctrl+C)
         this._virtualDevice.notify_key(time, CTRL, Clutter.KeyState.PRESSED);
         this._virtualDevice.notify_key(time + 50, C_KEY, Clutter.KeyState.PRESSED);
         this._virtualDevice.notify_key(time + 100, C_KEY, Clutter.KeyState.RELEASED);
         this._virtualDevice.notify_key(time + 150, CTRL, Clutter.KeyState.RELEASED);
 
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
             this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
                 if (!text || text.trim() === "") {
-                    // If copy failed, restore backup immediately
                     if (this._backupText) this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
                     return;
                 }
@@ -86,26 +97,32 @@ export default class GnomeBehafucha extends Extension {
                 const converted = this._convertText(text);
                 this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
 
-                GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                let innerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
                     let pt = GLib.get_monotonic_time() / 1000;
                     this._virtualDevice.notify_key(pt, CTRL, Clutter.KeyState.PRESSED);
                     this._virtualDevice.notify_key(pt + 50, V_KEY, Clutter.KeyState.PRESSED);
                     this._virtualDevice.notify_key(pt + 100, V_KEY, Clutter.KeyState.RELEASED);
                     this._virtualDevice.notify_key(pt + 150, CTRL, Clutter.KeyState.RELEASED);
 
-                    // Step 3: Restore original clipboard after the paste is likely finished
-                    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-                        if (this._backupText !== null) {
+                    let restoreId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 600, () => {
+                        if (this._backupText) {
                             this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
                         }
+                        this._backupText = null;
+                        this._removeTimeout(restoreId);
                         return GLib.SOURCE_REMOVE;
                     });
-                    
+                    this._timeoutIds.push(restoreId);
+
+                    this._removeTimeout(innerId);
                     return GLib.SOURCE_REMOVE;
                 });
+                this._timeoutIds.push(innerId);
             });
+            this._removeTimeout(id);
             return GLib.SOURCE_REMOVE;
         });
+        this._timeoutIds.push(id);
     }
 
     _convertText(text) {
