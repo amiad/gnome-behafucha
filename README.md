@@ -1,4 +1,4 @@
-# GNOME Behafucha
+# <img src="icon.png" alt="icon" height="30" style="position: relative; top: 5px;"> GNOME Behafucha
 GNOME Shell extension for instantly converting text typed in the wrong keyboard layout (Hebrew/English).
 
 ## Overview
