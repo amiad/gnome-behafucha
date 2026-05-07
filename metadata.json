@@ -1,6 +1,6 @@
 {
     "name": "Gnome Behafucha",
-    "description": "Fixes text typed in the wrong keyboard layout using Ctrl+Shift+Z",
+    "description": "Fixes text typed in the wrong keyboard layout using Super+Z (or a custom shortcut). This extension accesses the clipboard only when triggered by the user to perform the conversion and does not store or share any data.",
     "gettext-domain": "gnome-behafucha",
     "uuid": "gnome-behafucha@hatul.info",
     "shell-version": [
