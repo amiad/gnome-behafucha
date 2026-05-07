@@ -5,6 +5,11 @@ GNOME Shell extension for instantly converting text typed in the wrong keyboard 
 This extension converts text typed in the wrong layout (e.g., converting `akuo` to `שלום`). 
 
 **To use:** Simply select the text and press `<Super>z`
+
+<p align="center">
+  <img src="example.gif" alt="How it works">
+</p>
+
 ## Installation
 
 ### From GNOME Shell extensions site
