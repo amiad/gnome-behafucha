@@ -16,7 +16,7 @@ This extension converts text typed in the wrong layout (e.g., converting `akuo` 
 Install from [GNOME Shell extensions site](https://extensions.gnome.org/extension/9879/gnome-behafucha/).
 
 ### Manual Installation
-1. Download the [source code](https://github.com/amiad/gnome-behafucha/archive/refs/heads/master.zip).
+1. Download the [source code](https://github.com/amiad/gnome-behafucha/archive/refs/heads/master.zip) and extract the archive.
 2. Ensure the directory is named `gnome-behafucha@hatul.info`.
 3. Move the directory to `~/.local/share/gnome-shell/extensions/`.
 4. **Compile schemas:**
