@@ -4,7 +4,7 @@ GNOME Shell extension for instantly converting text typed in the wrong keyboard 
 ## Overview
 This extension converts text typed in the wrong layout (e.g., converting `akuo` to `שלום`). 
 
-**To use:** Simply select the text and press `<Super>z`
+**To use:** Simply select the text and press `<Super>z` or press it without selecting to convert the entire line.
 
 <p align="center">
   <img src="example.gif" alt="How it works">
