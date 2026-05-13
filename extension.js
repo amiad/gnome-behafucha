@@ -23,7 +23,8 @@ export default class GnomeBehafucha extends Extension {
                 Meta.KeyBindingFlags.NONE,
                 Shell.ActionMode.ALL,
                 () => {
-                    let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+                    // צמצום המתנה ראשונית
+                    let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
                         this._handleShortcut();
                         this._removeTimeout(id);
                         return GLib.SOURCE_REMOVE;
@@ -45,7 +46,6 @@ export default class GnomeBehafucha extends Extension {
             this._timeoutIds.forEach(id => GLib.source_remove(id));
             this._timeoutIds = [];
         }
-
         Main.wm.removeKeybinding('convert-text-shortcut');
         this._settings = null;
         this._clipboard = null;
@@ -62,12 +62,12 @@ export default class GnomeBehafucha extends Extension {
             const MODIFIERS = [29, 42, 56, 125, 126, 97, 100];
             let time = GLib.get_monotonic_time() / 1000;
             MODIFIERS.forEach((keycode, index) => {
-                this._virtualDevice.notify_key(time + (index * 2), keycode, Clutter.KeyState.RELEASED);
+                this._virtualDevice.notify_key(time + (index * 1), keycode, Clutter.KeyState.RELEASED);
             });
 
             this._clipboard.set_text(St.ClipboardType.CLIPBOARD, "");
 
-            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
                 this._executeCopyPaste();
                 this._removeTimeout(id);
                 return GLib.SOURCE_REMOVE;
@@ -77,35 +77,32 @@ export default class GnomeBehafucha extends Extension {
     }
 
     _executeCopyPaste() {
-        const CTRL = 29;
-        const C_KEY = 46;
-        const V_KEY = 47;
-        const SHIFT = 42;
-        const HOME = 102;
-        const END = 107;
+        const CTRL = 29, C_KEY = 46, V_KEY = 47, SHIFT = 42, HOME = 102, END = 107;
         let time = GLib.get_monotonic_time() / 1000;
 
         this._virtualDevice.notify_key(time, CTRL, Clutter.KeyState.PRESSED);
-        this._virtualDevice.notify_key(time + 50, C_KEY, Clutter.KeyState.PRESSED);
-        this._virtualDevice.notify_key(time + 100, C_KEY, Clutter.KeyState.RELEASED);
-        this._virtualDevice.notify_key(time + 150, CTRL, Clutter.KeyState.RELEASED);
+        this._virtualDevice.notify_key(time + 30, C_KEY, Clutter.KeyState.PRESSED);
+        this._virtualDevice.notify_key(time + 60, C_KEY, Clutter.KeyState.RELEASED);
+        this._virtualDevice.notify_key(time + 90, CTRL, Clutter.KeyState.RELEASED);
 
-        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+        // המתנה קצרה יותר לבדיקת הלוח
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
             this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
                 if (!text || text.trim() === "") {
                     let st = GLib.get_monotonic_time() / 1000;
+                    // ביצוע רצף בחירת שורה מהיר
                     this._virtualDevice.notify_key(st, HOME, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(st + 50, HOME, Clutter.KeyState.RELEASED);
-                    this._virtualDevice.notify_key(st + 100, SHIFT, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(st + 150, END, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(st + 200, END, Clutter.KeyState.RELEASED);
-                    this._virtualDevice.notify_key(st + 250, SHIFT, Clutter.KeyState.RELEASED);
-                    this._virtualDevice.notify_key(st + 300, CTRL, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(st + 350, C_KEY, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(st + 400, C_KEY, Clutter.KeyState.RELEASED);
-                    this._virtualDevice.notify_key(st + 450, CTRL, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 20, HOME, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 40, SHIFT, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 60, END, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 80, END, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 100, SHIFT, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 120, CTRL, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 140, C_KEY, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 160, C_KEY, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 180, CTRL, Clutter.KeyState.RELEASED);
 
-                    let rid = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                    let rid = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
                         this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb, text2) => {
                             if (text2 && text2.trim() !== "") {
                                 this._processAndPaste(text2, CTRL, V_KEY);
@@ -131,17 +128,15 @@ export default class GnomeBehafucha extends Extension {
         const converted = this._convertText(text);
         this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
 
-        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
             let pt = GLib.get_monotonic_time() / 1000;
             this._virtualDevice.notify_key(pt, CTRL, Clutter.KeyState.PRESSED);
-            this._virtualDevice.notify_key(pt + 50, V_KEY, Clutter.KeyState.PRESSED);
-            this._virtualDevice.notify_key(pt + 100, V_KEY, Clutter.KeyState.RELEASED);
-            this._virtualDevice.notify_key(pt + 150, CTRL, Clutter.KeyState.RELEASED);
+            this._virtualDevice.notify_key(pt + 30, V_KEY, Clutter.KeyState.PRESSED);
+            this._virtualDevice.notify_key(pt + 60, V_KEY, Clutter.KeyState.RELEASED);
+            this._virtualDevice.notify_key(pt + 90, CTRL, Clutter.KeyState.RELEASED);
 
-            let restoreId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 600, () => {
-                if (this._backupText) {
-                    this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
-                }
+            let restoreId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+                if (this._backupText) this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
                 this._backupText = null;
                 this._removeTimeout(restoreId);
                 return GLib.SOURCE_REMOVE;
@@ -161,11 +156,7 @@ export default class GnomeBehafucha extends Extension {
             ';': 'ף', "'": ';', 'z': 'ז', 'x': 'ס', 'c': 'ב', 'v': 'ה', 'b': 'נ',
             'n': 'מ', 'm': 'צ', ',': 'ת', '.': 'ץ', '/': '.'
         };
-
-        const HE_TO_EN = Object.fromEntries(
-            Object.entries(EN_TO_HE).map(([k, v]) => [v, k])
-        );
-
+        const HE_TO_EN = Object.fromEntries(Object.entries(EN_TO_HE).map(([k, v]) => [v, k]));
         return text.split('').map(char => {
             const lowerChar = char.toLowerCase();
             if (HE_TO_EN[char]) return HE_TO_EN[char];
