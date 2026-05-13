@@ -80,6 +80,9 @@ export default class GnomeBehafucha extends Extension {
         const CTRL = 29;
         const C_KEY = 46;
         const V_KEY = 47;
+        const SHIFT = 42;
+        const HOME = 102;
+        const END = 107;
         let time = GLib.get_monotonic_time() / 1000;
 
         this._virtualDevice.notify_key(time, CTRL, Clutter.KeyState.PRESSED);
@@ -90,35 +93,60 @@ export default class GnomeBehafucha extends Extension {
         let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
             this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
                 if (!text || text.trim() === "") {
-                    if (this._backupText) this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
-                    return;
-                }
+                    let st = GLib.get_monotonic_time() / 1000;
+                    this._virtualDevice.notify_key(st, HOME, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 50, HOME, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 100, SHIFT, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 150, END, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 200, END, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 250, SHIFT, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 300, CTRL, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 350, C_KEY, Clutter.KeyState.PRESSED);
+                    this._virtualDevice.notify_key(st + 400, C_KEY, Clutter.KeyState.RELEASED);
+                    this._virtualDevice.notify_key(st + 450, CTRL, Clutter.KeyState.RELEASED);
 
-                const converted = this._convertText(text);
-                this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
-
-                let innerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
-                    let pt = GLib.get_monotonic_time() / 1000;
-                    this._virtualDevice.notify_key(pt, CTRL, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(pt + 50, V_KEY, Clutter.KeyState.PRESSED);
-                    this._virtualDevice.notify_key(pt + 100, V_KEY, Clutter.KeyState.RELEASED);
-                    this._virtualDevice.notify_key(pt + 150, CTRL, Clutter.KeyState.RELEASED);
-
-                    let restoreId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 600, () => {
-                        if (this._backupText) {
-                            this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
-                        }
-                        this._backupText = null;
-                        this._removeTimeout(restoreId);
+                    let rid = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+                        this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb, text2) => {
+                            if (text2 && text2.trim() !== "") {
+                                this._processAndPaste(text2, CTRL, V_KEY);
+                            } else if (this._backupText) {
+                                this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
+                            }
+                        });
+                        this._removeTimeout(rid);
                         return GLib.SOURCE_REMOVE;
                     });
-                    this._timeoutIds.push(restoreId);
-
-                    this._removeTimeout(innerId);
-                    return GLib.SOURCE_REMOVE;
-                });
-                this._timeoutIds.push(innerId);
+                    this._timeoutIds.push(rid);
+                } else {
+                    this._processAndPaste(text, CTRL, V_KEY);
+                }
             });
+            this._removeTimeout(id);
+            return GLib.SOURCE_REMOVE;
+        });
+        this._timeoutIds.push(id);
+    }
+
+    _processAndPaste(text, CTRL, V_KEY) {
+        const converted = this._convertText(text);
+        this._clipboard.set_text(St.ClipboardType.CLIPBOARD, converted);
+
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+            let pt = GLib.get_monotonic_time() / 1000;
+            this._virtualDevice.notify_key(pt, CTRL, Clutter.KeyState.PRESSED);
+            this._virtualDevice.notify_key(pt + 50, V_KEY, Clutter.KeyState.PRESSED);
+            this._virtualDevice.notify_key(pt + 100, V_KEY, Clutter.KeyState.RELEASED);
+            this._virtualDevice.notify_key(pt + 150, CTRL, Clutter.KeyState.RELEASED);
+
+            let restoreId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 600, () => {
+                if (this._backupText) {
+                    this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
+                }
+                this._backupText = null;
+                this._removeTimeout(restoreId);
+                return GLib.SOURCE_REMOVE;
+            });
+            this._timeoutIds.push(restoreId);
             this._removeTimeout(id);
             return GLib.SOURCE_REMOVE;
         });
