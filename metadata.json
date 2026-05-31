@@ -12,5 +12,6 @@
         "50"
     ],
     "url": "https://github.com/amiad/gnome-behafucha",
+    "settings-schema": "org.gnome.shell.extensions.gnome-behafucha",
     "version": 4
 }

@@ -11,7 +11,7 @@ export default class GnomeBehafucha extends Extension {
     enable() {
         this._timeoutIds = [];
         try {
-            this._settings = this.getSettings('org.gnome.shell.extensions.gnome-behafucha');
+            this._settings = this.getSettings();
             this._clipboard = St.Clipboard.get_default();
             
             this._virtualDevice = Clutter.get_default_backend()
