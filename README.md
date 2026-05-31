@@ -2,7 +2,7 @@
 GNOME Shell extension for instantly converting text typed in the wrong keyboard layout (Hebrew/English).
 
 ## Overview
-This extension converts text typed in the wrong layout (e.g., converting `akuo` to `שלום`). 
+This extension converts text typed in the wrong layout (e.g., converting `akuo` to `שלום`). After converting the text, it automatically switches the system keyboard layout so you can continue typing seamlessly in the corrected language.
 
 **To use:** Simply select the text and press `<Super>z` or press it without selecting to convert the entire line.
 
@@ -43,6 +43,7 @@ gsettings set org.gnome.shell.extensions.gnome-behafucha convert-text-shortcut "
 * **Shortcut conflict:** If the shortcut doesn't trigger, make sure it isn't already assigned to another GNOME action.
 * **Shift Key Issues:** Avoid using the `Shift` key as a modifier for your shortcut (e.g., `<Super><Shift>z`). Using `Shift` can interfere with the automated selection and copy-paste simulation, causing the conversion to fail.
 * **Clipboard Content:** This extension is optimized for text. To ensure system stability, non-text data (such as images) currently in the clipboard may be lost during the conversion process.
+* **Multiple Keyboard Layouts:** If you use three or more input sources, the automatic layout switching simulates your system's default sequential shortcut. This means it will always advance to the next layout in your list, regardless of the text conversion result.
 
 ## Privacy
 This extension is designed with privacy in mind:
