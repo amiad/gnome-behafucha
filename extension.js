@@ -5,6 +5,7 @@ import Shell from 'gi://Shell';
 import Meta from 'gi://Meta';
 import St from 'gi://St';
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 
 export default class GnomeBehafucha extends Extension {
     enable() {
@@ -23,7 +24,6 @@ export default class GnomeBehafucha extends Extension {
                 Meta.KeyBindingFlags.NONE,
                 Shell.ActionMode.ALL,
                 () => {
-                    // צמצום המתנה ראשונית
                     let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
                         this._handleShortcut();
                         this._removeTimeout(id);
@@ -85,12 +85,10 @@ export default class GnomeBehafucha extends Extension {
         this._virtualDevice.notify_key(time + 60, C_KEY, Clutter.KeyState.RELEASED);
         this._virtualDevice.notify_key(time + 90, CTRL, Clutter.KeyState.RELEASED);
 
-        // המתנה קצרה יותר לבדיקת הלוח
         let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
             this._clipboard.get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
                 if (!text || text.trim() === "") {
                     let st = GLib.get_monotonic_time() / 1000;
-                    // ביצוע רצף בחירת שורה מהיר
                     this._virtualDevice.notify_key(st, HOME, Clutter.KeyState.PRESSED);
                     this._virtualDevice.notify_key(st + 20, HOME, Clutter.KeyState.RELEASED);
                     this._virtualDevice.notify_key(st + 40, SHIFT, Clutter.KeyState.PRESSED);
@@ -135,6 +133,13 @@ export default class GnomeBehafucha extends Extension {
             this._virtualDevice.notify_key(pt + 60, V_KEY, Clutter.KeyState.RELEASED);
             this._virtualDevice.notify_key(pt + 90, CTRL, Clutter.KeyState.RELEASED);
 
+            let layoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+                this._triggerLayoutSwitchShortcut();
+                this._removeTimeout(layoutId);
+                return GLib.SOURCE_REMOVE;
+            });
+            this._timeoutIds.push(layoutId);
+
             let restoreId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
                 if (this._backupText) this._clipboard.set_text(St.ClipboardType.CLIPBOARD, this._backupText);
                 this._backupText = null;
@@ -146,6 +151,55 @@ export default class GnomeBehafucha extends Extension {
             return GLib.SOURCE_REMOVE;
         });
         this._timeoutIds.push(id);
+    }
+
+    _triggerLayoutSwitchShortcut() {
+        if (!this._virtualDevice) return;
+
+        try {
+            let wmSettings = new Gio.Settings({ schema_id: 'org.gnome.desktop.wm.keybindings' });
+            let shortcuts = wmSettings.get_strv('switch-input-source') || [];
+            
+            if (shortcuts.length === 0 || shortcuts[0] === "") {
+                shortcuts = wmSettings.get_strv('switch-input-source-backward') || [];
+            }
+
+            let shortcutStr = (shortcuts.length > 0 && shortcuts[0] !== "") ? shortcuts[0] : '<Super>space';
+
+            const KEY_MAP = {
+                '<super>': 125, '<meta>': 125, '<alt>': 56, '<shift>': 42, '<ctrl>': 29, '<control>': 29,
+                'space': 57, 'alt_l': 56, 'alt_r': 100, 'shift_l': 42, 'shift_r': 62, 'control_l': 29, 'control_r': 97
+            };
+
+            let keycodes = [];
+            let lowerStr = shortcutStr.toLowerCase();
+            let parts = lowerStr.match(/<[^>]+>|[a-z0-9_]+/g) || [];
+
+            parts.forEach(part => {
+                if (KEY_MAP[part]) {
+                    keycodes.push(KEY_MAP[part]);
+                } else if (part.length === 1) {
+                    let code = Clutter.keysym_to_keycode(part.charCodeAt(0));
+                    if (code) keycodes.push(code);
+                }
+            });
+
+            if (keycodes.length === 0) return;
+
+            let lt = GLib.get_monotonic_time() / 1000;
+            
+            keycodes.forEach((code, index) => {
+                this._virtualDevice.notify_key(lt + (index * 20), code, Clutter.KeyState.PRESSED);
+            });
+
+            let releaseStart = lt + (keycodes.length * 20) + 30;
+            keycodes.slice().reverse().forEach((code, index) => {
+                this._virtualDevice.notify_key(releaseStart + (index * 20), code, Clutter.KeyState.RELEASED);
+            });
+
+        } catch (e) {
+            console.error(`GnomeBehafucha Universal Layout Switch Error: ${e.message}`);
+        }
     }
 
     _convertText(text) {
